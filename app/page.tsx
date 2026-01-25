@@ -10,7 +10,7 @@ interface Task {
 }
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasks, setTasks] = useState<Task[]>([]) // Variable que guarda la lista de tareas
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -66,6 +66,19 @@ export default function Home() {
       </div>
     )
   }
+  
+  async function toggleTask(id: string, completed: boolean) {
+  try {
+    await fetch(`/api/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: !completed })
+    })
+    fetchTasks() // Recarga lista
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -108,11 +121,11 @@ export default function Home() {
                   className="p-4 hover:bg-gray-50 transition"
                 >
                   <div className="flex items-center gap-3">
-                    <input
+                                        <input
                       type="checkbox"
                       checked={task.completed}
+                      onChange={() => toggleTask(task.id, task.completed)}
                       className="w-5 h-5 text-blue-600 rounded"
-                      readOnly
                     />
                     <span
                       className={`flex-1 ${
