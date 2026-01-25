@@ -9,17 +9,22 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params  // ← Await aquí
+    const { id } = await context.params
     const body = await request.json()
     
+    // Construir objeto de actualización dinámicamente
+    const updateData: any = {}
+    if (body.completed !== undefined) updateData.completed = body.completed
+    if (body.title !== undefined) updateData.title = body.title
+    
     const task = await prisma.task.update({
-      where: { id },  // ← Usar id directamente
-      data: { completed: body.completed }
+      where: { id },
+      data: updateData
     })
     
     return NextResponse.json(task)
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error al actualizar:', error)
     return NextResponse.json({ error: 'Error al actualizar' }, { status: 500 })
   }
 }
