@@ -66,7 +66,8 @@ export default function Home() {
       </div>
     )
   }
-  
+
+  // Invertir el estado completado de una tarea en la base de datos y recarga la lista
   async function toggleTask(id: string, completed: boolean) {
   try {
     await fetch(`/api/tasks/${id}`, {
@@ -77,6 +78,23 @@ export default function Home() {
     fetchTasks() // Recarga lista
   } catch (error) {
     console.error('Error:', error)
+  }
+}
+
+// Función para eliminar tarea
+async function deleteTask(id: string) {
+  // Confirmación antes de eliminar
+  if (!confirm('¿Estás seguro de eliminar esta tarea?')) {
+    return
+  }
+  
+  try {
+    await fetch(`/api/tasks/${id}`, {
+      method: 'DELETE'
+    })
+    fetchTasks() // Recarga lista
+  } catch (error) {
+    console.error('Error al eliminar:', error)
   }
 }
 
@@ -92,7 +110,7 @@ export default function Home() {
         <form onSubmit={createTask} className="mb-8">
           <div className="flex gap-2">
             <input
-              type="text"
+              type="text" 
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="Escribe una nueva tarea..."
@@ -139,6 +157,14 @@ export default function Home() {
                     <span className="text-sm text-gray-400">
                       {new Date(task.createdAt).toLocaleDateString()}
                     </span>
+                    {/* Botón eliminar */}
+                    <button
+                      onClick={() => deleteTask(task.id)}
+                      className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition"
+                      title="Eliminar tarea"
+                    >
+                      🗑️
+                    </button>
                   </div>
                 </li>
               ))}
