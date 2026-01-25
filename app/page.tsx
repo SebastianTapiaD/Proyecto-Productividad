@@ -13,6 +13,8 @@ export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]) // Variable que guarda la lista de tareas
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
 
   // Cargar tareas al inicio
   useEffect(() => {
@@ -97,6 +99,39 @@ async function deleteTask(id: string) {
     console.error('Error al eliminar:', error)
   }
 }
+  // Función para iniciar edición
+  function startEdit(id: string, currentTitle: string) {
+    setEditingId(id)
+    setEditingTitle(currentTitle)
+  }
+
+  // Función para cancelar edición
+  function cancelEdit() {
+    setEditingId(null)
+    setEditingTitle('')
+  }
+
+  // Función para guardar edición
+  async function saveEdit(id: string) {
+    if (!editingTitle.trim()) {
+      alert('El título no puede estar vacío')
+      return
+    }
+
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editingTitle })
+      })
+
+      setEditingId(null)
+      setEditingTitle('')
+      fetchTasks() // Recarga lista
+    } catch (error) {
+      console.error('Error al editar:', error)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -134,37 +169,82 @@ async function deleteTask(id: string) {
           ) : (
             <ul className="divide-y divide-gray-200">
               {tasks.map((task) => (
-                <li
+                 <li
                   key={task.id}
                   className="p-4 hover:bg-gray-50 transition"
                 >
                   <div className="flex items-center gap-3">
-                                        <input
+                    <input
                       type="checkbox"
                       checked={task.completed}
                       onChange={() => toggleTask(task.id, task.completed)}
-                      className="w-5 h-5 text-blue-600 rounded"
+                      className="w-5 h-5 text-blue-600 rounded cursor-pointer"
                     />
-                    <span
-                      className={`flex-1 ${
-                        task.completed
-                          ? 'line-through text-gray-400'
-                          : 'text-gray-900'
-                      }`}
-                    >
-                      {task.title}
-                    </span>
-                    <span className="text-sm text-gray-400">
-                      {new Date(task.createdAt).toLocaleDateString()}
-                    </span>
-                    {/* Botón eliminar */}
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition"
-                      title="Eliminar tarea"
-                    >
-                      🗑️
-                    </button>
+                    
+                    {/* Si está en modo edición, muestra input */}
+                    {editingId === task.id ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEdit(task.id)
+                            if (e.key === 'Escape') cancelEdit()
+                          }}
+                          className="flex-1 px-3 py-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveEdit(task.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                          title="Guardar"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                          title="Cancelar"
+                        >
+                          ✕
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Modo normal: muestra título */}
+                        <span
+                          className={`flex-1 cursor-pointer ${
+                            task.completed
+                              ? 'line-through text-gray-400'
+                              : 'text-gray-900'
+                          }`}
+                          onDoubleClick={() => startEdit(task.id, task.title)}
+                          title="Doble click para editar"
+                        >
+                          {task.title}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          {new Date(task.createdAt).toLocaleDateString()}
+                        </span>
+                        
+                        {/* Botones de acción */}
+                        <button
+                          onClick={() => startEdit(task.id, task.title)}
+                          className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                          title="Editar tarea"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition"
+                          title="Eliminar tarea"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
