@@ -12,10 +12,52 @@ export async function PUT(
     const { id } = await context.params
     const body = await request.json()
     
-    // Construir objeto de actualización dinámicamente
+    // Construir objeto de actualización
     const updateData: any = {}
-    if (body.completed !== undefined) updateData.completed = body.completed
-    if (body.title !== undefined) updateData.title = body.title
+    
+    if (body.completed !== undefined) {
+      updateData.completed = body.completed
+    }
+    
+    if (body.title !== undefined) {
+      // Validar que el título no esté vacío
+      if (!body.title.trim()) {
+        return NextResponse.json(
+          { error: 'El título no puede estar vacío' },
+          { status: 400 }
+        )
+      }
+      
+      // Obtener la tarea actual para saber su userId
+      const currentTask = await prisma.task.findUnique({
+        where: { id }
+      })
+      
+      if (!currentTask) {
+        return NextResponse.json(
+          { error: 'Tarea no encontrada' },
+          { status: 404 }
+        )
+      }
+      
+      // Verificar si ya existe otra tarea con ese título
+      const existingTask = await prisma.task.findFirst({
+        where: {
+          title: body.title.trim(),
+          userId: currentTask.userId,
+          NOT: { id } // Excluir la tarea actual
+        }
+      })
+      
+      if (existingTask) {
+        return NextResponse.json(
+          { error: 'Ya existe otra tarea con ese título' },
+          { status: 409 }
+        )
+      }
+      
+      updateData.title = body.title.trim()
+    }
     
     const task = await prisma.task.update({
       where: { id },

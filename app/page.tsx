@@ -35,31 +35,39 @@ export default function Home() {
   }
 
   // Función para crear nueva tarea
-  async function createTask(e: React.FormEvent) {
-    e.preventDefault()
-    
-    if (!newTaskTitle.trim()) return
-
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTaskTitle,
-          userId: 'cmkrr3u4w0000fkqc1hw01cvn' // Lo cambiaremos después
-        })
-      })
-
-      if (response.ok) {
-        setNewTaskTitle('') // Limpiar input
-        fetchTasks() // Recargar tareas
-      }
-    } catch (error) {
-      console.error('Error al crear tarea:', error)
-    }
+async function createTask(e: React.FormEvent) {
+  e.preventDefault()
+  
+  if (!newTaskTitle.trim()) {
+    alert('El título no puede estar vacío')
+    return
   }
+
+  try {
+    const response = await fetch('/api/tasks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: newTaskTitle,
+        userId: 'cmkrr3u4w0000fkqc1hw01cvn' // Tu userId
+      })
+    })
+
+    if (response.ok) {
+      setNewTaskTitle('') // Limpiar input
+      fetchTasks() // Recargar tareas
+    } else {
+      // Manejar errores del backend
+      const errorData = await response.json()
+      alert(errorData.error || 'Error al crear tarea')
+    }
+  } catch (error) {
+    console.error('Error al crear tarea:', error)
+    alert('Error de conexión al crear tarea')
+  }
+}
 
   if (loading) {
     return (
@@ -112,24 +120,31 @@ async function deleteTask(id: string) {
   }
 
   // Función para guardar edición
-  async function saveEdit(id: string) {
-    if (!editingTitle.trim()) {
-      alert('El título no puede estar vacío')
-      return
-    }
-
-    try {
-      await fetch(`/api/tasks/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editingTitle })
-      })
-
+async function saveEdit(id: string) {
+  if (!editingTitle.trim()) {
+    alert('El título no puede estar vacío')
+    return
+  }
+  
+  try {
+    const response = await fetch(`/api/tasks/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editingTitle })
+    })
+    
+    if (response.ok) {
       setEditingId(null)
       setEditingTitle('')
       fetchTasks() // Recarga lista
-    } catch (error) {
-      console.error('Error al editar:', error)
+    } else {
+      // Manejar errores del backend
+      const errorData = await response.json()
+      alert(errorData.error || 'Error al editar tarea')
+    }
+  } catch (error) {
+    console.error('Error al editar:', error)
+    alert('Error de conexión al editar tarea')
   }
 }
 
