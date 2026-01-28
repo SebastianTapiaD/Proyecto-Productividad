@@ -11,16 +11,12 @@ export default function LandingPage() {
         
         <div className="flex gap-4 justify-center">
           <a 
-            href="/dashboard" 
+            href="/login" 
             className="px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition"
           >
-            Ir al Dashboard →
+            Iniciar Sesion
           </a>
         </div>
-        
-        <p className="mt-8 text-sm text-blue-200">
-          🚧 Autenticación próximamente
-        </p>
       </div>
     </div>
   )
