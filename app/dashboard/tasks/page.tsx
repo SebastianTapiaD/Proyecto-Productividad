@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { useSession } from 'next-auth/react'
 
 interface Task {
   id: string
@@ -16,65 +17,108 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
+  const { data: session, status } = useSession()
+
 
   // Cargar tareas al inicio
   useEffect(() => {
-    fetchTasks()
-  }, [])
-
-  // Función para obtener tareas de la API
-  async function fetchTasks() {
-    try {
-      const response = await fetch('/api/tasks')
-      const data = await response.json()
-      setTasks(data)
-      setLoading(false)
-    } catch (error) {
-      console.error('Error al cargar tareas:', error)
-      setLoading(false)
+    if (status === 'authenticated') {
+      fetchTasks()
     }
-  }
+  }, [status])
 
-  // Función para crear nueva tarea
-async function createTask(e: React.FormEvent) {
-  e.preventDefault()
-  
-  if (!newTaskTitle.trim()) {
-    toast.warning('El título no puede estar vacío')
-    return
-  }
-
+  // Función para obtener tareas
+async function fetchTasks() {
   try {
-    const response = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        title: newTaskTitle,
-        userId: 'cmkrr3u4w0000fkqc1hw01cvn' // Tu userId
-      })
-    })
-
-    if (response.ok) {
-      setNewTaskTitle('') // Limpiar input
-      fetchTasks() // Recargar tareas
-      toast.success('Tarea creada exitosamente')
-    } else {
-      // Manejar errores del backend
+    const response = await fetch('/api/tasks')
+    
+    if (!response.ok) {
       const errorData = await response.json()
-      toast.error(errorData.error || 'Error al crear tarea')
+      console.error('API Error:', errorData)
+      toast.error(errorData.error || 'Error al cargar tareas')
+      setTasks([])
+      setLoading(false)
+      return
     }
+    
+    const data = await response.json()
+    
+    // Verificar si data es array
+    if (Array.isArray(data)) {
+      setTasks(data)
+    } else {
+      console.error('API no devolvió array:', data)
+      setTasks([])
+    }
+    
+    setLoading(false)
   } catch (error) {
-    console.error('Error al crear tarea:', error)
-    toast.error('Error de conexión al crear tarea')
+    console.error('Error al cargar tareas:', error)
+    toast.error('Error de conexión')
+    setTasks([])
+    setLoading(false)
   }
 }
 
-  if (loading) {
+  // Función para crear nueva tarea
+  async function createTask(e: React.FormEvent) {
+    e.preventDefault()
+    
+    if (!newTaskTitle.trim()) {
+      toast.warning('El título no puede estar vacío')
+      return
+    }
+
+    if (!session?.user?.id) {
+      toast.error('Debes estar autenticado')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTaskTitle,
+          userId: session.user.id
+        })
+      })
+
+      if (response.ok) {
+        setNewTaskTitle('')
+        fetchTasks()
+        toast.success('Tarea creada exitosamente')
+      } else {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Error al crear tarea')
+      }
+    } catch (error) {
+      console.error('Error al crear tarea:', error)
+      toast.error('Error de conexión al crear tarea')
+    }
+  }
+
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-xl">Cargando...</p>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Debes iniciar sesión
+          </h1>
+          <a href="/login" className="text-blue-600 hover:text-blue-500">
+            Ir a Login →
+          </a>
+        </div>
       </div>
     )
   }
