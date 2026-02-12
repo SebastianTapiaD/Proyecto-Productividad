@@ -20,12 +20,14 @@ model User {
 }
 
 model Task {
-  id        String   @id @default(cuid())
-  title     String
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  title           String
+  completed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  cycleInDays     Int       @default(1)        
+  lastCompletedAt DateTime?                     
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Modelos requeridos por NextAuth

@@ -12,15 +12,19 @@ export async function PUT(
     const { id } = await context.params
     const body = await request.json()
     
-    // Construir objeto de actualización
     const updateData: any = {}
     
+    // Si marca como completada, guardar la fecha actual
     if (body.completed !== undefined) {
       updateData.completed = body.completed
+      
+      // Si se marca como completada, guardar lastCompletedAt
+      if (body.completed === true) {
+        updateData.lastCompletedAt = new Date()
+      }
     }
     
     if (body.title !== undefined) {
-      // Validar que el título no esté vacío
       if (!body.title.trim()) {
         return NextResponse.json(
           { error: 'El título no puede estar vacío' },
@@ -28,7 +32,6 @@ export async function PUT(
         )
       }
       
-      // Obtener la tarea actual para saber su userId
       const currentTask = await prisma.task.findUnique({
         where: { id }
       })
@@ -40,12 +43,11 @@ export async function PUT(
         )
       }
       
-      // Verificar si ya existe otra tarea con ese título
       const existingTask = await prisma.task.findFirst({
         where: {
           title: body.title.trim(),
           userId: currentTask.userId,
-          NOT: { id } // Excluir la tarea actual
+          NOT: { id }
         }
       })
       
