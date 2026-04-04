@@ -46,55 +46,63 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Iniciar Sesión
-          </h2>
+    <div className="min-h-screen bg-base flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold text-text mb-1">Bienvenido de vuelta</h1>
+          <p className="text-text-muted text-sm">Ingresa tus credenciales para continuar</p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+
+        <div className="bg-surface border border-border rounded-xl p-6 shadow-lg">
+          <form className="space-y-4" onSubmit={handleLogin}>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-text-muted mb-1.5">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2.5 bg-surface-raised border border-border text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition placeholder:text-text-muted/50 text-sm"
+                placeholder="tu@email.com"
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-text-muted mb-1.5">
+                Contraseña
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2.5 bg-surface-raised border border-border text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition placeholder:text-text-muted/50 text-sm"
+                placeholder="••••••••"
+                disabled={loading}
+              />
+            </div>
+
+            <button
+              type="submit"
               disabled={loading}
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Contraseña
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-              disabled={loading}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition"
-          >
-            {loading ? 'Iniciando...' : 'Iniciar Sesión'}
-          </button>
-        </form>
-        <div className="text-center space-y-2">
-          <a href="/register" className="text-sm text-blue-600 hover:text-blue-500">
-            ¿No tienes cuenta? Regístrate
+              className="w-full py-2.5 px-4 bg-accent text-accent-text font-semibold rounded-lg hover:bg-accent-hover transition-colors disabled:opacity-50 text-sm mt-2"
+            >
+              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-sm text-text-muted mt-5">
+          ¿No tienes cuenta?{' '}
+          <a href="/register" className="text-accent hover:text-accent-hover font-medium transition-colors">
+            Regístrate
           </a>
-        </div>
+        </p>
       </div>
     </div>
   )

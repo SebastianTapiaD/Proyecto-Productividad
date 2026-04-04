@@ -72,9 +72,3 @@ mi-app-productividad/
 ├── middleware.ts                  # Protección de rutas
 └── prisma/
     └── schema.prisma             # Modelos de base de datos
-
-## Autor
-
-Recién egresado de Ingeniería en Informática — Inacap La Serena.
-Experiencia previa en Python/Django, Unity/C# y Blender.
-```

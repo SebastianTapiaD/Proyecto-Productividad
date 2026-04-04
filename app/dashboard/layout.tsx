@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
 
 export default function DashboardLayout({
@@ -9,54 +10,68 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const { data: session, status } = useSession()
+  const pathname = usePathname()
 
-  // MOSTRAR LOADING MIENTRAS VERIFICA SESIÓN
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl">Verificando sesión...</p>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="text-text-muted">Verificando sesión...</p>
       </div>
     )
   }
 
-  // EDIRIGIR SI NO HAY SESIÓN
   if (!session) {
-    return null 
+    return null
   }
 
+  const navLinks = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/dashboard/tasks', label: 'Tareas' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-md border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-base">
+      <nav className="bg-surface border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-3.5">
           <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="text-2xl font-bold text-blue-600">
-              📊 ProductividApp
-            </Link>
-            
-            <div className="flex items-center gap-6">
-              <Link href="/dashboard" className="text-gray-600 hover:text-blue-600">
-                🏠 Dashboard
+            <div className="flex items-center gap-8">
+              <Link href="/dashboard" className="text-lg font-bold text-accent tracking-tight">
+                ProductividApp
               </Link>
-              <Link href="/dashboard/tasks" className="text-gray-600 hover:text-blue-600">
-                📝 Tareas
-              </Link>
+
+              <div className="flex items-center gap-1">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      pathname === link.href
+                        ? 'bg-accent/15 text-accent'
+                        : 'text-text-muted hover:text-text hover:bg-surface-raised'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
             </div>
 
-            {/* ← SOLO SI HAY SESIÓN */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-text leading-none">
                   {session.user?.name || session.user?.email}
                 </p>
-                <p className="text-xs text-gray-500">
-                  {session.user?.email}
-                </p>
+                {session.user?.name && (
+                  <p className="text-xs text-text-muted mt-0.5">
+                    {session.user?.email}
+                  </p>
+                )}
               </div>
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition"
+                className="px-3 py-1.5 text-sm font-medium text-text-muted border border-border rounded-md hover:border-danger/50 hover:text-danger transition-colors"
               >
-                Cerrar Sesión
+                Salir
               </button>
             </div>
           </div>

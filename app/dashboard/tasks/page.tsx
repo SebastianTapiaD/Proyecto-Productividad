@@ -19,21 +19,19 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
-  const [cycleInDays, setCycleInDays] = useState(1)  // Por defecto: diario
+  const [cycleInDays, setCycleInDays] = useState(1)
   const { data: session, status } = useSession()
 
-  // Cargar tareas al inicio
   useEffect(() => {
     if (status === 'authenticated') {
       fetchTasks()
     }
   }, [status])
 
-  // Función para obtener tareas
   async function fetchTasks() {
     try {
       const response = await fetch('/api/tasks')
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         console.error('API Error:', errorData)
@@ -42,16 +40,16 @@ export default function TasksPage() {
         setLoading(false)
         return
       }
-      
+
       const data = await response.json()
-      
+
       if (Array.isArray(data)) {
         setTasks(data)
       } else {
         console.error('API no devolvió array:', data)
         setTasks([])
       }
-      
+
       setLoading(false)
     } catch (error) {
       console.error('Error al cargar tareas:', error)
@@ -63,7 +61,7 @@ export default function TasksPage() {
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault()
-    
+
     if (!newTaskTitle.trim()) {
       toast.warning('El título no puede estar vacío')
       return
@@ -77,19 +75,17 @@ export default function TasksPage() {
     try {
       const response = await fetch('/api/tasks', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTaskTitle,
           userId: session.user.id,
-          cycleInDays: cycleInDays  // Enviar el ciclo seleccionado
-        })
+          cycleInDays: cycleInDays,
+        }),
       })
 
       if (response.ok) {
         setNewTaskTitle('')
-        setCycleInDays(1)  // Resetear selector a "Diario" después de crear
+        setCycleInDays(1)
         fetchTasks()
         toast.success('Tarea creada exitosamente')
       } else {
@@ -104,34 +100,31 @@ export default function TasksPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl">Cargando...</p>
+      <div className="min-h-screen bg-base flex items-center justify-center">
+        <p className="text-text-muted">Cargando...</p>
       </div>
     )
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-base flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Debes iniciar sesión
-          </h1>
-          <a href="/login" className="text-blue-600 hover:text-blue-500">
-            Ir a Login →
+          <p className="text-text-muted mb-3">Debes iniciar sesión para continuar</p>
+          <a href="/login" className="text-accent hover:text-accent-hover font-medium transition-colors">
+            Ir a Login &rarr;
           </a>
         </div>
       </div>
     )
   }
 
-  // Toggle completado
   async function toggleTask(id: string, completed: boolean) {
     try {
       await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completed: !completed })
+        body: JSON.stringify({ completed: !completed }),
       })
       fetchTasks()
     } catch (error) {
@@ -139,7 +132,6 @@ export default function TasksPage() {
     }
   }
 
-  // Eliminar tarea
   function deleteTask(id: string) {
     toast.warning('¿Estás seguro de eliminar esta tarea?', {
       description: 'Esta acción no se puede deshacer',
@@ -147,9 +139,7 @@ export default function TasksPage() {
         label: 'Eliminar',
         onClick: async () => {
           try {
-            await fetch(`/api/tasks/${id}`, {
-              method: 'DELETE'
-            })
+            await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
             fetchTasks()
             toast.success('Tarea eliminada correctamente')
           } catch (error) {
@@ -164,11 +154,11 @@ export default function TasksPage() {
       },
       classNames: {
         toast: '!w-full md:!w-[410px]',
-        actionButton: '!bg-red-600 !text-white hover:!bg-red-500',
-        cancelButton: '!bg-black !text-white hover:!bg-gray-800'
+        actionButton: '!bg-danger !text-white hover:!bg-danger-hover',
+        cancelButton: '!bg-surface-raised !text-text hover:!bg-border',
       },
       duration: 5000,
-    });
+    })
   }
 
   function startEdit(id: string, currentTitle: string) {
@@ -191,9 +181,9 @@ export default function TasksPage() {
       const response = await fetch(`/api/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: editingTitle })
+        body: JSON.stringify({ title: editingTitle }),
       })
-      
+
       if (response.ok) {
         setEditingId(null)
         setEditingTitle('')
@@ -209,40 +199,45 @@ export default function TasksPage() {
     }
   }
 
-  // Función helper para mostrar el texto del ciclo
   function getCycleText(days: number): string {
-    if (days === 1) return '🔄 Diaria'
-    if (days === 2) return '🔄 Cada 2 días'
-    if (days === 7) return '🔄 Semanal'
-    if (days === 14) return '🔄 Quincenal'
-    if (days === 30) return '🔄 Mensual'
-    return `🔄 Cada ${days} días`
+    if (days === 1) return 'Diaria'
+    if (days === 2) return 'Cada 2 dias'
+    if (days === 7) return 'Semanal'
+    if (days === 14) return 'Quincenal'
+    if (days === 30) return 'Mensual'
+    return `Cada ${days} dias`
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">
-          📝 Mis Tareas
-        </h1>
+  const completed = tasks.filter((t) => t.completed).length
 
-        <form onSubmit={createTask} className="mb-8">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            {/* Input de título */}
+  return (
+    <div className="min-h-screen bg-base py-10">
+      <div className="max-w-2xl mx-auto px-6">
+        {/* Header */}
+        <div className="mb-8 flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-text mb-1">Tareas</h1>
+            <p className="text-text-muted text-sm">
+              {completed} de {tasks.length} completadas
+            </p>
+          </div>
+        </div>
+
+        {/* Formulario de nueva tarea */}
+        <form onSubmit={createTask} className="mb-6">
+          <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
             <input
-              type="text" 
+              type="text"
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
-              placeholder="Escribe una nueva tarea..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 text-gray-900 bg-white mb-3"
+              placeholder="Nueva tarea..."
+              className="w-full px-3 py-2.5 bg-surface-raised border border-border text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition placeholder:text-text-muted/50 text-sm"
             />
-            
-            {/* Selector de ciclo + Botón crear */}
-            <div className="flex gap-2">
-              <div className="flex-1 flex items-center gap-2">
-                <label htmlFor="cycleInput" className="text-gray-700 font-medium whitespace-nowrap">
-                  🔄 Ciclo:
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-1">
+                <label htmlFor="cycleInput" className="text-sm text-text-muted whitespace-nowrap">
+                  Repetir cada
                 </label>
                 <input
                   id="cycleInput"
@@ -251,16 +246,16 @@ export default function TasksPage() {
                   max="365"
                   value={cycleInDays}
                   onChange={(e) => setCycleInDays(Number(e.target.value))}
-                  placeholder="1"
-                  className="w-20 px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white text-center"
+                  className="w-16 px-2 py-2 bg-surface-raised border border-border text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition text-sm text-center"
                 />
-                <span className="text-gray-600 text-sm">
-                  {cycleInDays === 1 ? 'día' : 'días'}
+                <span className="text-sm text-text-muted">
+                  {cycleInDays === 1 ? 'dia' : 'dias'}
                 </span>
-              </div>             
+              </div>
+
               <button
                 type="submit"
-                className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
+                className="px-5 py-2 bg-accent text-accent-text font-semibold rounded-lg hover:bg-accent-hover transition-colors text-sm whitespace-nowrap"
               >
                 Agregar
               </button>
@@ -269,26 +264,27 @@ export default function TasksPage() {
         </form>
 
         {/* Lista de tareas */}
-        <div className="bg-white rounded-lg shadow">
-          {tasks.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No hay tareas todavía. ¡Crea tu primera tarea!
+        <div className="bg-surface border border-border rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center text-text-muted text-sm">
+              Cargando tareas...
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="p-10 text-center">
+              <p className="text-text-muted text-sm">No hay tareas todavia. Crea tu primera tarea.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-border">
               {tasks.map((task) => (
-                <li
-                  key={task.id}
-                  className="p-4 hover:bg-gray-50 transition"
-                >
+                <li key={task.id} className="px-4 py-3.5 hover:bg-surface-raised transition-colors">
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
                       checked={task.completed}
                       onChange={() => toggleTask(task.id, task.completed)}
-                      className="w-5 h-5 text-blue-600 rounded cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer accent-accent flex-shrink-0"
                     />
-                    
+
                     {editingId === task.id ? (
                       <>
                         <input
@@ -299,67 +295,71 @@ export default function TasksPage() {
                             if (e.key === 'Enter') saveEdit(task.id)
                             if (e.key === 'Escape') cancelEdit()
                           }}
-                          className="flex-1 px-3 py-2 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          className="flex-1 px-3 py-1.5 bg-surface-raised border border-accent/60 text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 text-sm"
                           autoFocus
                         />
                         <button
                           onClick={() => saveEdit(task.id)}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                          className="px-2.5 py-1 bg-success/20 text-success rounded text-sm font-medium hover:bg-success/30 transition-colors"
                           title="Guardar"
                         >
-                          ✓
+                          Guardar
                         </button>
                         <button
                           onClick={cancelEdit}
-                          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition"
+                          className="px-2.5 py-1 bg-surface-raised text-text-muted rounded text-sm hover:text-text transition-colors"
                           title="Cancelar"
                         >
-                          ✕
+                          Cancelar
                         </button>
                       </>
                     ) : (
                       <>
-                        {/* Layout mejorado para mostrar título + ciclo */}
                         <div className="flex-1 min-w-0">
                           <span
-                            className={`block cursor-pointer ${
+                            className={`block text-sm cursor-pointer ${
                               task.completed
-                                ? 'line-through text-gray-400'
-                                : 'text-gray-900'
+                                ? 'line-through text-text-muted'
+                                : 'text-text'
                             }`}
                             onDoubleClick={() => startEdit(task.id, task.title)}
                             title="Doble click para editar"
                           >
                             {task.title}
                           </span>
-                          
-                          {/* Mostrar el ciclo de la tarea */}
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-text-muted">
                             {getCycleText(task.cycleInDays)}
                           </span>
                         </div>
-                        
-                        <span className="text-sm text-gray-400 whitespace-nowrap">
+
+                        <span className="text-xs text-text-muted whitespace-nowrap flex-shrink-0">
                           {new Date(task.createdAt).toLocaleDateString('es-ES', {
                             day: '2-digit',
-                            month: '2-digit'
+                            month: '2-digit',
                           })}
                         </span>
-                        
-                        {/* Botones de acción */}
+
                         <button
                           onClick={() => startEdit(task.id, task.title)}
-                          className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                          className="p-1.5 text-text-muted hover:text-accent rounded transition-colors flex-shrink-0"
                           title="Editar tarea"
                         >
-                          ✏️
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
                         </button>
                         <button
                           onClick={() => deleteTask(task.id)}
-                          className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition"
+                          className="p-1.5 text-text-muted hover:text-danger rounded transition-colors flex-shrink-0"
                           title="Eliminar tarea"
                         >
-                          🗑️
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                            <path d="M10 11v6M14 11v6"/>
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                          </svg>
                         </button>
                       </>
                     )}
@@ -370,10 +370,11 @@ export default function TasksPage() {
           )}
         </div>
 
-        {/* Contador */}
-        <div className="mt-4 text-center text-gray-600">
-          Total: {tasks.length} tarea{tasks.length !== 1 ? 's' : ''}
-        </div>
+        {tasks.length > 0 && (
+          <p className="mt-3 text-center text-xs text-text-muted">
+            {tasks.length} tarea{tasks.length !== 1 ? 's' : ''} en total
+          </p>
+        )}
       </div>
     </div>
   )
