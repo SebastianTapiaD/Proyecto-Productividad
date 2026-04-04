@@ -27,6 +27,7 @@ export default function DashboardLayout({
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/tasks', label: 'Tareas' },
+    { href: '/dashboard/finances', label: 'Finanzas' },
   ]
 
   return (

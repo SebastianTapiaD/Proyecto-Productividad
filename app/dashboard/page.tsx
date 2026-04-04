@@ -8,10 +8,10 @@ const modules = [
     available: true,
   },
   {
-    href: '#',
+    href: '/dashboard/finances',
     label: 'Finanzas',
     description: 'Control de gastos e ingresos personales.',
-    available: false,
+    available: true,
   },
   {
     href: '#',
