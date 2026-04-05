@@ -34,14 +34,14 @@ export default function DashboardPage() {
           {modules.map((mod) =>
             mod.available ? (
               <Link key={mod.label} href={mod.href}>
-                <div className="group bg-surface border border-border rounded-xl p-6 hover:border-accent/50 transition-colors cursor-pointer h-full">
+                <div className="group bg-surface border border-border rounded-xl p-6 hover:border-accent/50 transition-colors cursor-pointer h-full flex flex-col">
                   <h2 className="text-lg font-semibold text-text mb-2 group-hover:text-accent transition-colors">
                     {mod.label}
                   </h2>
                   <p className="text-sm text-text-muted leading-relaxed mb-4">
                     {mod.description}
                   </p>
-                  <span className="text-sm font-medium text-accent">
+                  <span className="text-sm font-medium text-accent mt-auto">
                     Abrir modulo &rarr;
                   </span>
                 </div>
