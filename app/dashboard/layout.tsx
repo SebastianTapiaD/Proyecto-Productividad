@@ -28,6 +28,7 @@ export default function DashboardLayout({
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/dashboard/tasks', label: 'Tareas' },
     { href: '/dashboard/finances', label: 'Finanzas' },
+    { href: '/dashboard/nutrition', label: 'Nutricion' },
   ]
 
   return (

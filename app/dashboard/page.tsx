@@ -14,10 +14,10 @@ const modules = [
     available: true,
   },
   {
-    href: '#',
+    href: '/dashboard/nutrition',
     label: 'Nutrición',
     description: 'Planifica comidas y lleva un seguimiento de macros.',
-    available: false,
+    available: true,
   },
 ]
 
