@@ -32,7 +32,7 @@ export async function PUT(
         protein: body.protein !== undefined ? Number(body.protein) : food.protein,
         carbs: body.carbs !== undefined ? Number(body.carbs) : food.carbs,
         fat: body.fat !== undefined ? Number(body.fat) : food.fat,
-        serving: body.serving !== undefined ? Number(body.serving) : food.serving,
+        stockQuantity: body.stockQuantity !== undefined ? Number(body.stockQuantity) : food.stockQuantity,
         unit: body.unit?.trim() ?? food.unit,
         inPantry: body.inPantry !== undefined ? Boolean(body.inPantry) : food.inPantry,
       },

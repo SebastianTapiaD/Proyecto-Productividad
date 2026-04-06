@@ -32,7 +32,7 @@ interface Food {
   protein: number
   carbs: number
   fat: number
-  serving: number
+  stockQuantity: number
   unit: string
   inPantry: boolean
 }
@@ -42,6 +42,14 @@ interface MacroGoal {
   protein: number
   carbs: number
   fat: number
+}
+
+interface AiSuggestion {
+  tipo: MealType
+  nombre: string
+  ingredientes: string[]
+  instrucciones: string
+  macros: { calories: number; protein: number; carbs: number; fat: number }
 }
 
 // ---------------------------------------------------------------------------
@@ -244,17 +252,27 @@ export default function NutricionPage() {
     protein: '',
     carbs: '',
     fat: '',
-    serving: '100',
+    stockQuantity: '',
     unit: 'g',
     inPantry: true,
   })
   const [savingFood, setSavingFood] = useState(false)
+  const [autofillLoading, setAutofillLoading] = useState(false)
+  const [autofillRemaining, setAutofillRemaining] = useState<number | null>(null)
 
   // Macros
   const [macroGoal, setMacroGoal] = useState<MacroGoal>(DEFAULT_GOAL)
   const [macroCalories, setMacroCalories] = useState('2000')
   const [pctForm, setPctForm] = useState({ protein: '30', carbs: '40', fat: '30' })
   const [savingMacros, setSavingMacros] = useState(false)
+
+  // IA
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestion[]>([])
+  const [aiNota, setAiNota] = useState('')
+  const [aiRemaining, setAiRemaining] = useState<number | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [showAiPanel, setShowAiPanel] = useState(false)
+  const [addingFromAi, setAddingFromAi] = useState<string | null>(null)
 
   // ---------------------------------------------------------------------------
   // Fetch
@@ -430,7 +448,7 @@ export default function NutricionPage() {
 
   function openAddFood() {
     setEditingFood(null)
-    setFoodForm({ name: '', calories: '', protein: '', carbs: '', fat: '', serving: '100', unit: 'g', inPantry: true })
+    setFoodForm({ name: '', calories: '', protein: '', carbs: '', fat: '', stockQuantity: '', unit: 'g', inPantry: true })
     setShowFoodForm(true)
   }
 
@@ -442,11 +460,49 @@ export default function NutricionPage() {
       protein: String(food.protein),
       carbs: String(food.carbs),
       fat: String(food.fat),
-      serving: String(food.serving),
+      stockQuantity: String(food.stockQuantity),
       unit: food.unit,
       inPantry: food.inPantry,
     })
     setShowFoodForm(true)
+  }
+
+  async function autofillMacros() {
+    if (!foodForm.name.trim()) {
+      toast.warning('Escribe el nombre del alimento primero')
+      return
+    }
+    setAutofillLoading(true)
+    try {
+      const res = await fetch('/api/nutrition/foods/autofill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: foodForm.name,
+          stockQuantity: foodForm.stockQuantity,
+          unit: foodForm.unit,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Error al estimar macros')
+        return
+      }
+      setFoodForm((p) => ({
+        ...p,
+        calories: String(data.calories),
+        protein: String(data.protein),
+        carbs: String(data.carbs),
+        fat: String(data.fat),
+        servingRef: data.serving ?? '',
+      }))
+      if (data.remaining !== undefined) setAutofillRemaining(data.remaining)
+      toast.success(`Macros estimados por IA (por 100${foodForm.unit})`)
+    } catch {
+      toast.error('Error de conexion')
+    } finally {
+      setAutofillLoading(false)
+    }
   }
 
   async function submitFood(e: React.FormEvent) {
@@ -513,6 +569,66 @@ export default function NutricionPage() {
       fetchFoods()
     } catch {
       toast.error('Error al actualizar')
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Handlers: IA
+  // ---------------------------------------------------------------------------
+
+  async function generateAiPlan() {
+    setAiLoading(true)
+    setShowAiPanel(true)
+    setAiSuggestions([])
+    setAiNota('')
+    try {
+      const res = await fetch('/api/nutrition/ai-suggestions', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || 'Error al generar sugerencias')
+        setShowAiPanel(false)
+        return
+      }
+      setAiSuggestions(data.suggestions ?? [])
+      setAiNota(data.nota ?? '')
+      setAiRemaining(data.remaining ?? null)
+    } catch {
+      toast.error('Error de conexion')
+      setShowAiPanel(false)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  async function quickAddFromAi(suggestion: AiSuggestion) {
+    setAddingFromAi(suggestion.tipo)
+    try {
+      const res = await fetch('/api/nutrition/weekly-meals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weekDay: selectedDay,
+          mealType: suggestion.tipo,
+          name: suggestion.nombre,
+          calories: suggestion.macros.calories,
+          protein: suggestion.macros.protein,
+          carbs: suggestion.macros.carbs,
+          fat: suggestion.macros.fat,
+          notes: suggestion.ingredientes.join(', '),
+          weekStart: formatWeekStart(weekStart),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(err.error || 'Error al agregar platillo')
+        return
+      }
+      toast.success(`${MEAL_TYPE_LABELS[suggestion.tipo]} agregado al plan`)
+      fetchWeeklyMeals(weekStart)
+    } catch {
+      toast.error('Error de conexion')
+    } finally {
+      setAddingFromAi(null)
     }
   }
 
@@ -733,6 +849,125 @@ export default function NutricionPage() {
               })}
             </div>
 
+            {/* Boton de sugerencias con IA */}
+            <div className="mb-4">
+              <button
+                onClick={generateAiPlan}
+                disabled={aiLoading}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border border-accent/40 bg-accent/8 text-accent text-lg font-semibold hover:bg-accent/15 hover:border-accent/60 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              >
+                {aiLoading ? (
+                  <>
+                    <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    Generando plan...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M13 7 L14.5 12.5 L20 14 L14.5 15.5 L13 21 L11.5 15.5 L6 14 L11.5 12.5 Z"/>
+                      <path d="M7 2.5 L7.8 5.2 L10.5 6 L7.8 6.8 L7 9.5 L6.2 6.8 L3.5 6 L6.2 5.2 Z"/>
+                      <path d="M18 2 L18.5 3.5 L20 4 L18.5 4.5 L18 6 L17.5 4.5 L16 4 L17.5 3.5 Z"/>
+                    </svg>
+                    Generar plan con IA
+                  </>
+                )}
+              </button>
+              {aiRemaining !== null && (
+                <p className="text-center text-xs text-text-muted mt-1.5">
+                  {aiRemaining} sugerencia{aiRemaining !== 1 ? 's' : ''} restante{aiRemaining !== 1 ? 's' : ''} hoy
+                </p>
+              )}
+            </div>
+
+            {/* Panel de sugerencias de IA */}
+            {showAiPanel && (
+              <div className="mb-5 bg-surface border border-accent/30 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-accent/5">
+                  <div>
+                    <p className="text-sm font-semibold text-text">Plan sugerido por IA</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      Basado en tu despensa y objetivos de macros
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAiPanel(false)}
+                    className="p-1.5 text-text-muted hover:text-text hover:bg-surface-raised rounded-lg transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+
+                {aiLoading && (
+                  <div className="py-8 text-center text-text-muted text-sm">
+                    Consultando a Gemini...
+                  </div>
+                )}
+
+                {!aiLoading && aiSuggestions.length > 0 && (
+                  <div className="divide-y divide-border/60">
+                    {aiSuggestions.map((s) => (
+                      <div key={s.tipo} className="px-4 py-3">
+                        <div className="flex items-start justify-between gap-3 mb-1.5">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                {MEAL_TYPE_LABELS[s.tipo]}
+                              </span>
+                            </div>
+                            <p className="text-sm font-semibold text-text">{s.nombre}</p>
+                          </div>
+                          <button
+                            onClick={() => quickAddFromAi(s)}
+                            disabled={addingFromAi === s.tipo}
+                            className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-accent bg-accent/10 hover:bg-accent/20 rounded-lg disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {addingFromAi === s.tipo ? (
+                              <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                              </svg>
+                            )}
+                            Agregar
+                          </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-text-muted mb-2">
+                          <span>{Math.round(s.macros.calories)} kcal</span>
+                          <span>P: {Math.round(s.macros.protein)}g</span>
+                          <span>C: {Math.round(s.macros.carbs)}g</span>
+                          <span>G: {Math.round(s.macros.fat)}g</span>
+                        </div>
+
+                        <ul className="text-xs text-text-muted space-y-0.5 mb-2">
+                          {s.ingredientes.map((ing, i) => (
+                            <li key={i} className="flex gap-1.5">
+                              <span className="text-accent/60 shrink-0">-</span>
+                              <span>{ing}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <p className="text-xs text-text-muted italic">{s.instrucciones}</p>
+                      </div>
+                    ))}
+
+                    {aiNota && (
+                      <div className="px-4 py-3 bg-surface-raised">
+                        <p className="text-xs text-text-muted italic">{aiNota}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Secciones de comida del dia seleccionado */}
             {mealsLoading ? (
               <div className="py-10 text-center text-text-muted text-sm">Cargando plan...</div>
@@ -832,7 +1067,7 @@ export default function NutricionPage() {
                                   .filter((f) => f.inPantry)
                                   .map((f) => (
                                     <option key={f.id} value={f.id}>
-                                      {f.name} ({Math.round(f.calories)} kcal / {f.serving}{f.unit})
+                                      {f.name} ({f.stockQuantity}{f.unit})
                                     </option>
                                   ))}
                               </select>
@@ -970,6 +1205,7 @@ export default function NutricionPage() {
                   {editingFood ? 'Editar alimento' : 'Nuevo alimento'}
                 </p>
 
+                {/* Nombre */}
                 <input
                   type="text"
                   placeholder="Nombre del alimento *"
@@ -979,6 +1215,67 @@ export default function NutricionPage() {
                   autoFocus
                 />
 
+                {/* Porcion + Unidad (subidos antes de macros) */}
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <label className="text-xs text-text-muted mb-0.5 block">Cantidad *</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={foodForm.stockQuantity}
+                      onChange={(e) => setFoodForm((p) => ({ ...p, stockQuantity: e.target.value }))}
+                      className="w-full px-3 py-2 bg-surface-raised border border-border text-text rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs text-text-muted mb-0.5 block">Unidad *</label>
+                    <select
+                      value={foodForm.unit}
+                      onChange={(e) => setFoodForm((p) => ({ ...p, unit: e.target.value }))}
+                      className="w-full px-3 py-2 bg-surface-raised border border-border text-text rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+                    >
+                      <option value="g">g</option>
+                      <option value="ml">ml</option>
+                      <option value="unidad">unidad</option>
+                      <option value="taza">taza</option>
+                      <option value="cdta">cdta</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Boton completar con IA */}
+                <button
+                  type="button"
+                  onClick={autofillMacros}
+                  disabled={autofillLoading}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-lg border border-accent/40 bg-accent/8 text-accent text-lg font-semibold hover:bg-accent/15 hover:border-accent/60 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                >
+                  {autofillLoading ? (
+                    <>
+                      <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                      Estimando macros...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 7 L14.5 12.5 L20 14 L14.5 15.5 L13 21 L11.5 15.5 L6 14 L11.5 12.5 Z"/>
+                        <path d="M7 2.5 L7.8 5.2 L10.5 6 L7.8 6.8 L7 9.5 L6.2 6.8 L3.5 6 L6.2 5.2 Z"/>
+                        <path d="M18 2 L18.5 3.5 L20 4 L18.5 4.5 L18 6 L17.5 4.5 L16 4 L17.5 3.5 Z"/>
+                      </svg>
+                      Completar macros con IA
+                    </>
+                  )}
+                </button>
+                {autofillRemaining !== null && (
+                  <p className="text-center text-xs text-text-muted mt-1.5">
+                    {autofillRemaining} autocompletado{autofillRemaining !== 1 ? 's' : ''} restante{autofillRemaining !== 1 ? 's' : ''} hoy
+                  </p>
+                )}
+
+                {/* Macros (opcionales) */}
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { key: 'calories', label: 'Calorías (kcal)' },
@@ -987,7 +1284,7 @@ export default function NutricionPage() {
                     { key: 'fat', label: 'Grasas (g)' },
                   ].map(({ key, label }) => (
                     <div key={key}>
-                      <label className="text-xs text-text-muted mb-0.5 block">{label}</label>
+                      <label className="text-xs text-text-muted mb-0.5 block">{label} <span className="text-text-muted/50">(opcional)</span></label>
                       <input
                         type="number"
                         min="0"
@@ -1001,44 +1298,18 @@ export default function NutricionPage() {
                   ))}
                 </div>
 
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <label className="text-xs text-text-muted mb-0.5 block">Porcion</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={foodForm.serving}
-                      onChange={(e) => setFoodForm((p) => ({ ...p, serving: e.target.value }))}
-                      className="w-full px-3 py-2 bg-surface-raised border border-border text-text rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-xs text-text-muted mb-0.5 block">Unidad</label>
-                    <select
-                      value={foodForm.unit}
-                      onChange={(e) => setFoodForm((p) => ({ ...p, unit: e.target.value }))}
-                      className="w-full px-3 py-2 bg-surface-raised border border-border text-text rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-                    >
-                      <option value="g">g</option>
-                      <option value="ml">ml</option>
-                      <option value="unidad">unidad</option>
-                      <option value="taza">taza</option>
-                      <option value="cdta">cdta</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2 pb-2">
-                    <input
-                      type="checkbox"
-                      id="inPantry"
-                      checked={foodForm.inPantry}
-                      onChange={(e) => setFoodForm((p) => ({ ...p, inPantry: e.target.checked }))}
-                      className="w-4 h-4 rounded accent-accent"
-                    />
-                    <label htmlFor="inPantry" className="text-sm text-text-muted whitespace-nowrap">
-                      En despensa
-                    </label>
-                  </div>
+                {/* En despensa */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="inPantry"
+                    checked={foodForm.inPantry}
+                    onChange={(e) => setFoodForm((p) => ({ ...p, inPantry: e.target.checked }))}
+                    className="w-4 h-4 rounded accent-accent"
+                  />
+                  <label htmlFor="inPantry" className="text-sm text-text-muted">
+                    En despensa
+                  </label>
                 </div>
 
                 <div className="flex gap-2 justify-end pt-1">
@@ -1094,11 +1365,16 @@ export default function NutricionPage() {
                           </div>
                           <div className="flex flex-wrap gap-2 mt-0.5">
                             <span className="text-xs text-text-muted">
-                              {Math.round(food.calories)} kcal / {food.serving}{food.unit}
+                              {food.stockQuantity}{food.unit} en stock
                             </span>
-                            <span className="text-xs text-blue-400">P: {food.protein}g</span>
-                            <span className="text-xs text-amber-400">C: {food.carbs}g</span>
-                            <span className="text-xs text-rose-400">G: {food.fat}g</span>
+                            {food.calories > 0 && (
+                              <span className="text-xs text-text-muted">
+                                · {Math.round(food.calories)} kcal / 100{food.unit}
+                              </span>
+                            )}
+                            {food.protein > 0 && <span className="text-xs text-blue-400">P: {food.protein}g</span>}
+                            {food.carbs > 0 && <span className="text-xs text-amber-400">C: {food.carbs}g</span>}
+                            {food.fat > 0 && <span className="text-xs text-rose-400">G: {food.fat}g</span>}
                           </div>
                         </div>
 
