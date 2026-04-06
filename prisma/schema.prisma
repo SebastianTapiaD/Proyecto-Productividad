@@ -19,6 +19,7 @@ model User {
   foods         Food[]
   macroGoal     MacroGoal?
   weeklyMeals   WeeklyMeal[]
+  aiUsageLogs   AiUsageLog[]
   sessions      Session[]
   accounts      Account[]
 }
@@ -57,18 +58,18 @@ model Task {
 // ---------------------------------------------------------------------------
 
 model Food {
-  id        String   @id @default(cuid())
-  name      String
-  calories  Float
-  protein   Float
-  carbs     Float
-  fat       Float
-  serving   Float    @default(100)
-  unit      String   @default("g")
-  inPantry  Boolean  @default(true)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  calories      Float    @default(0)
+  protein       Float    @default(0)
+  carbs         Float    @default(0)
+  fat           Float    @default(0)
+  stockQuantity Float    @default(0)
+  unit          String   @default("g")
+  inPantry      Boolean  @default(true)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
 }
 
 model MacroGoal {
@@ -112,6 +113,17 @@ model WeeklyMeal {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model AiUsageLog {
+  id     String @id @default(cuid())
+  userId String
+  date   String // YYYY-MM-DD
+  type   String @default("suggestion") // "suggestion" | "autofill"
+  count  Int    @default(0)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, type])
 }
 
 // ---------------------------------------------------------------------------

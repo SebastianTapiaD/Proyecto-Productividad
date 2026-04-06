@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         protein: Number(body.protein) || 0,
         carbs: Number(body.carbs) || 0,
         fat: Number(body.fat) || 0,
-        serving: Number(body.serving) || 100,
+        stockQuantity: Number(body.stockQuantity) || 0,
         unit: body.unit?.trim() || 'g',
         inPantry: body.inPantry !== false,
         userId: session.user.id,
