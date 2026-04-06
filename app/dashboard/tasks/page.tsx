@@ -247,15 +247,31 @@ export default function TasksPage() {
                 <label htmlFor="cycleInput" className="text-sm text-text-muted whitespace-nowrap">
                   Repetir cada
                 </label>
-                <input
-                  id="cycleInput"
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={cycleInDays}
-                  onChange={(e) => setCycleInDays(Number(e.target.value))}
-                  className="w-16 px-2 py-2 bg-surface-raised border border-border text-text rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition text-sm text-center"
-                />
+                <div className="flex items-stretch border border-border rounded-lg overflow-hidden bg-surface-raised">
+                  <button
+                    type="button"
+                    onClick={() => setCycleInDays((v) => Math.max(1, v - 1))}
+                    className="px-2.5 py-2 text-text-muted hover:text-text hover:bg-border transition-colors text-sm leading-none select-none"
+                  >
+                    −
+                  </button>
+                  <input
+                    id="cycleInput"
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={cycleInDays}
+                    onChange={(e) => setCycleInDays(Math.max(1, Math.min(365, Number(e.target.value))))}
+                    className="w-10 py-2 bg-transparent text-text text-sm text-center focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCycleInDays((v) => Math.min(365, v + 1))}
+                    className="px-2.5 py-2 text-text-muted hover:text-text hover:bg-border transition-colors text-sm leading-none select-none"
+                  >
+                    +
+                  </button>
+                </div>
                 <span className="text-sm text-text-muted">
                   {cycleInDays === 1 ? 'dia' : 'dias'}
                 </span>
@@ -284,7 +300,7 @@ export default function TasksPage() {
           ) : (
             <ul className="divide-y divide-border">
               {tasks.map((task) => (
-                <li key={task.id} className="px-4 py-3.5 hover:bg-surface-raised transition-colors">
+                <li key={task.id} className={`px-4 py-3.5 hover:bg-surface-raised transition-colors border-l-[3px] ${!task.completed ? 'border-l-danger' : 'border-l-success'}`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
