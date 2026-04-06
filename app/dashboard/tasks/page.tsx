@@ -199,6 +199,14 @@ export default function TasksPage() {
     }
   }
 
+  function getNextResetDate(task: Task): string | null {
+    if (!task.completed || !task.lastCompletedAt) return null
+    const base = new Date(task.lastCompletedAt)
+    base.setHours(0, 0, 0, 0)
+    base.setDate(base.getDate() + task.cycleInDays)
+    return base.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
+  }
+
   function getCycleText(days: number): string {
     if (days === 1) return 'Diaria'
     if (days === 2) return 'Cada 2 dias'
@@ -332,12 +340,11 @@ export default function TasksPage() {
                           </span>
                         </div>
 
-                        <span className="text-xs text-text-muted whitespace-nowrap flex-shrink-0">
-                          {new Date(task.createdAt).toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                          })}
-                        </span>
+                        {getNextResetDate(task) && (
+                          <span className="text-xs text-text-muted whitespace-nowrap flex-shrink-0" title="Fecha de reinicio">
+                            {getNextResetDate(task)}
+                          </span>
+                        )}
 
                         <button
                           onClick={() => startEdit(task.id, task.title)}
